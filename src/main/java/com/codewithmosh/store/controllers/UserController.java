@@ -5,11 +5,11 @@ import com.codewithmosh.store.entities.User;
 import com.codewithmosh.store.mappers.UserMapper;
 import com.codewithmosh.store.repositories.UserRepository;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Set;
 
 @AllArgsConstructor
 @RestController
@@ -20,8 +20,13 @@ public class UserController {
     private final UserMapper userMapper;
 
     @GetMapping
-    public Iterable<UserDto> getAllUsers() {
-        return userRepository.findAll()
+    public Iterable<UserDto> getAllUsers(@RequestParam(required = false, defaultValue = "", name = "sort") String sort) {
+
+        if(!Set.of("name", "email").contains(sort)) {
+            sort = "name";
+        }
+
+        return userRepository.findAll(Sort.by(sort))
                 .stream()
                 .map(userMapper::toDto)
                 .toList();
