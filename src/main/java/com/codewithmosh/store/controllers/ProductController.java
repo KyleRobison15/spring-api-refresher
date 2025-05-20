@@ -1,6 +1,7 @@
 package com.codewithmosh.store.controllers;
 
 import com.codewithmosh.store.dtos.ProductDto;
+import com.codewithmosh.store.entities.Category;
 import com.codewithmosh.store.entities.Product;
 import com.codewithmosh.store.mappers.ProductMapper;
 import com.codewithmosh.store.repositories.CategoryRepository;
@@ -67,5 +68,38 @@ public class ProductController {
         return ResponseEntity.created(uri).body(productDto);
 
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ProductDto> updateProduct(@PathVariable Long id, @RequestBody ProductDto productDto) {
+        Product product = productRepository.findById(id).orElse(null);
+
+        if(product == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Category category = categoryRepository.findById(productDto.getCategoryId()).orElse(null);
+
+        if(category == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        product.setCategory(category);
+        productMapper.update(productDto, product);
+        productRepository.save(product);
+        productDto.setId(product.getId());
+
+        return ResponseEntity.ok(productDto);
+
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
+        Product product = productRepository.findById(id).orElse(null);
+        if(product == null) {
+            return ResponseEntity.notFound().build();
+        }
+        productRepository.delete(product);
+        return ResponseEntity.noContent().build();
+    }
+
 
 }
