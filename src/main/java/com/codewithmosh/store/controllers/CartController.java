@@ -48,16 +48,13 @@ public class CartController {
         var uri = uriBuilder.path("/carts/{id}/items").buildAndExpand(cartId).toUri();
 
         return ResponseEntity.created(uri).body(cartItemDto);
-
     }
 
     @GetMapping("/{cartId}")
     public ResponseEntity<CartDto> getCart(@PathVariable UUID cartId) {
-        var cart = cartRepository.getCartWithItems(cartId).orElse(null);
-        if (cart == null) {
-            return ResponseEntity.notFound().build();
-        }
-        var cartDto = cartMapper.toCartDto(cart);
+
+        var cartDto = cartService.getCartById(cartId);
+
         return ResponseEntity.ok(cartDto);
     }
 
