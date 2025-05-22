@@ -3,16 +3,19 @@ package com.codewithmosh.store.controllers;
 import com.codewithmosh.store.dtos.AddItemToCartRequest;
 import com.codewithmosh.store.dtos.CartDto;
 import com.codewithmosh.store.dtos.CartItemDto;
+import com.codewithmosh.store.dtos.UpdateCartItemRequest;
 import com.codewithmosh.store.entities.Cart;
-import com.codewithmosh.store.entities.CartItem;
 import com.codewithmosh.store.mappers.CartMapper;
 import com.codewithmosh.store.repositories.CartRepository;
 import com.codewithmosh.store.repositories.ProductRepository;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.Map;
 import java.util.UUID;
 
 @AllArgsConstructor
@@ -54,25 +57,7 @@ public class CartController {
             return ResponseEntity.badRequest().build();
         }
 
-        // Check if the product already exists in the cart
-        var cartItem = cart.getItems().stream()
-                .filter(item -> item.getProduct().getId().equals(product.getId()))
-                .findFirst()
-                .orElse(null);
-
-        // If the product already exists in the cart, increment its quantity
-        if (cartItem != null) {
-                cartItem.setQuantity(cartItem.getQuantity() + 1);
-        }
-
-        // Otherwise, create a new cart item
-        else {
-            cartItem = new CartItem();
-            cartItem.setProduct(product);
-            cartItem.setQuantity(1);
-            cartItem.setCart(cart);
-            cart.getItems().add(cartItem);
-        }
+        var cartItem = cart.addItem(product);
 
         // Here we use the CART repository to save the cartItem along with its associated cart
         // This corresponds to the "Aggregate Root" principle in Domain Driven Design:
@@ -97,6 +82,35 @@ public class CartController {
         }
         var cartDto = cartMapper.toCartDto(cart);
         return ResponseEntity.ok(cartDto);
+    }
+
+    @PutMapping("/{cartId}/items/{productId}")
+    public ResponseEntity<?> updateItemQuantity(
+            @PathVariable UUID cartId,
+            @PathVariable Long productId,
+            @Valid @RequestBody UpdateCartItemRequest request) {
+
+        var cart = cartRepository.getCartWithItems(cartId).orElse(null);
+
+        if (cart == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Cart not found."));
+        }
+
+        // Find the cart item for the given product id
+        var cartItem = cart.getItem(productId);
+
+        // If it doesn't exist, return a not found error
+        if (cartItem == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Product was not found in the cart."));
+        }
+
+        // Update the quantity for this cart item
+        cartItem.setQuantity(request.getQuantity());
+        cartRepository.save(cart);
+
+        var cartItemDto = cartMapper.toCartItemDto(cartItem);
+
+        return ResponseEntity.ok(cartItemDto);
     }
 
 
