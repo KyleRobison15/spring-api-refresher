@@ -28,7 +28,7 @@ public class Cart {
         // This is because we are UPDATING a cart when we add a cart item
         // The MERGE attribute tells JPA to persist the update for any child entities
         // Cart Item is a child of Cart
-    @OneToMany(mappedBy = "cart", cascade = {CascadeType.MERGE}, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "cart", cascade = {CascadeType.MERGE}, orphanRemoval = true, fetch = FetchType.EAGER)
     private Set<CartItem> items = new HashSet<>();
 
     public BigDecimal getTotalPrice() {
@@ -66,6 +66,14 @@ public class Cart {
         }
 
         return cartItem;
+    }
+
+    public void removeItem(Long productId) {
+        var cartItem = getItem(productId);
+        if (cartItem != null) {
+            items.remove(cartItem);
+            cartItem.setCart(null);
+        }
     }
 
 }
