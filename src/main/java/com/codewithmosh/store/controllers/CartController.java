@@ -6,7 +6,6 @@ import com.codewithmosh.store.dtos.CartItemDto;
 import com.codewithmosh.store.dtos.UpdateCartItemRequest;
 import com.codewithmosh.store.exceptions.CartNotFoundException;
 import com.codewithmosh.store.exceptions.ProductNotFoundException;
-import com.codewithmosh.store.repositories.CartRepository;
 import com.codewithmosh.store.services.CartService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
@@ -24,7 +23,6 @@ import java.util.UUID;
 public class CartController {
 
     private final CartService cartService;
-    private final CartRepository cartRepository;
 
     @PostMapping
     public ResponseEntity<CartDto> createCart(UriComponentsBuilder uriComponentsBuilder) {
@@ -49,11 +47,8 @@ public class CartController {
     }
 
     @GetMapping("/{cartId}")
-    public ResponseEntity<CartDto> getCart(@PathVariable UUID cartId) {
-
-        var cartDto = cartService.getCartById(cartId);
-
-        return ResponseEntity.ok(cartDto);
+    public CartDto getCart(@PathVariable UUID cartId) {
+        return cartService.getCartById(cartId);
     }
 
     @PutMapping("/{cartId}/items/{productId}")
@@ -67,27 +62,13 @@ public class CartController {
 
     @DeleteMapping("/{cartId}/items/{productId}")
     public ResponseEntity<?> removeCartItem(@PathVariable UUID cartId, @PathVariable Long productId) {
-        var cart = cartRepository.getCartWithItems(cartId).orElse(null);
-        if (cart == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Cart not found."));
-        }
-
-        cart.removeItem(productId);
-        cartRepository.save(cart);
-
+        cartService.removeItemFromCart(cartId, productId);
         return ResponseEntity.noContent().build();
-
     }
 
     @DeleteMapping("/{cartId}/items")
-    public ResponseEntity<?> removeAllCartItems(@PathVariable UUID cartId) {
-        var cart = cartRepository.getCartWithItems(cartId).orElse(null);
-        if (cart == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Cart not found."));
-        }
-
-        cart.clearItems();
-        cartRepository.save(cart);
+    public ResponseEntity<?> clearCart(@PathVariable UUID cartId) {
+        cartService.clearCart(cartId);
         return ResponseEntity.noContent().build();
     }
 
