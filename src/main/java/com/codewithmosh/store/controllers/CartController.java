@@ -4,10 +4,11 @@ import com.codewithmosh.store.dtos.AddItemToCartRequest;
 import com.codewithmosh.store.dtos.CartDto;
 import com.codewithmosh.store.dtos.CartItemDto;
 import com.codewithmosh.store.dtos.UpdateCartItemRequest;
-import com.codewithmosh.store.entities.Cart;
+import com.codewithmosh.store.exceptions.CartNotFoundException;
+import com.codewithmosh.store.exceptions.ProductNotFoundException;
 import com.codewithmosh.store.mappers.CartMapper;
 import com.codewithmosh.store.repositories.CartRepository;
-import com.codewithmosh.store.repositories.ProductRepository;
+import com.codewithmosh.store.services.CartService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -23,18 +24,15 @@ import java.util.UUID;
 @RequestMapping("/carts")
 public class CartController {
 
+    private final CartService cartService;
     private final CartRepository cartRepository;
     private final CartMapper cartMapper;
-    private final ProductRepository productRepository;
 
     @PostMapping
     public ResponseEntity<CartDto> createCart(UriComponentsBuilder uriComponentsBuilder) {
 
-        var cart = new Cart();
+        var cartDto = cartService.createCart();
 
-        cartRepository.save(cart);
-
-        var cartDto = cartMapper.toCartDto(cart);
         var uri = uriComponentsBuilder.path("/carts/{id}").buildAndExpand(cartDto.getId()).toUri();
 
         return ResponseEntity.created(uri).body(cartDto);
@@ -45,30 +43,9 @@ public class CartController {
                                                      @RequestBody AddItemToCartRequest request,
                                                      UriComponentsBuilder uriBuilder) {
 
-        var cart = cartRepository.getCartWithItems(cartId).orElse(null);
-        if (cart == null) {
-            return ResponseEntity.notFound().build();
-        }
+        var cartItemDto = cartService.addItemToCart(cartId, request.getProductId());
 
-        var product = productRepository.findById(request.getProductId()).orElse(null);
-        if (product == null) {
-            // If product is not found, the user provided a bad product id -> bad request instead of not found
-            // We only return not found when a client is requesting a resource that could not be found
-            return ResponseEntity.badRequest().build();
-        }
-
-        var cartItem = cart.addItem(product);
-
-        // Here we use the CART repository to save the cartItem along with its associated cart
-        // This corresponds to the "Aggregate Root" principle in Domain Driven Design:
-            // A cart item can never exist without a Cart. So we should never save a cartItem to the DB directly w/o a cart
-            // For this reason, we will never create a CartItemRepo. And we will always save cartItems to the DB through a CartRepo
-            // This more accurately models the business logic in our code
-        cartRepository.save(cart);
-
-        var cartItemDto = cartMapper.toCartItemDto(cartItem);
-
-        var uri = uriBuilder.path("/carts/{id}/items").buildAndExpand(cart.getId()).toUri();
+        var uri = uriBuilder.path("/carts/{id}/items").buildAndExpand(cartId).toUri();
 
         return ResponseEntity.created(uri).body(cartItemDto);
 
@@ -137,6 +114,16 @@ public class CartController {
         cart.clearItems();
         cartRepository.save(cart);
         return ResponseEntity.noContent().build();
+    }
+
+    @ExceptionHandler(CartNotFoundException.class)
+    public ResponseEntity<Map<String,String>> handleCartNotFoundException() {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Cart not found."));
+    }
+
+    @ExceptionHandler(ProductNotFoundException.class)
+    public ResponseEntity<Map<String,String>> handleProductNotFoundException() {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Product not found in the cart."));
     }
 
 
