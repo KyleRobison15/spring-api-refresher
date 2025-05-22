@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
@@ -23,7 +24,19 @@ public class Cart {
     @Column(name = "date_created", insertable = false, updatable = false)
     private LocalDate dateCreated;
 
-    @OneToMany(mappedBy = "cart")
-    private Set<CartItem> cartItems = new HashSet<>();
+    // To persist a Cart Item when saving a cart, we use the MERGE cascade type
+        // This is because we are UPDATING a cart when we add a cart item
+        // The MERGE attribute tells JPA to persist the update for any child entities
+        // Cart Item is a child of Cart
+    @OneToMany(mappedBy = "cart", cascade = {CascadeType.MERGE}, fetch = FetchType.EAGER)
+    private Set<CartItem> items = new HashSet<>();
+
+    public BigDecimal getTotalPrice() {
+        BigDecimal totalPrice = BigDecimal.ZERO;
+        for (CartItem item : items) {
+            totalPrice = totalPrice.add(item.getTotalPrice());
+        }
+        return totalPrice;
+    }
 
 }
