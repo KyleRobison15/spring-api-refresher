@@ -62,4 +62,26 @@ public class CartService {
         return cartMapper.toCartDto(cart);
     }
 
+    public CartItemDto updateCartItem(UUID cartId, Long productId, Integer quantity) {
+        var cart = cartRepository.getCartWithItems(cartId).orElse(null);
+
+        if (cart == null) {
+            throw new CartNotFoundException();
+        }
+
+        // Find the cart item for the given product id
+        var cartItem = cart.getItem(productId);
+
+        // If it doesn't exist, return a not found error
+        if (cartItem == null) {
+            throw new ProductNotFoundException();
+        }
+
+        // Update the quantity for this cart item
+        cartItem.setQuantity(quantity);
+        cartRepository.save(cart);
+
+        return cartMapper.toCartItemDto(cartItem);
+    }
+
 }

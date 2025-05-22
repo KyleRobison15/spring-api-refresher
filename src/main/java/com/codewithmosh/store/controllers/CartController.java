@@ -6,7 +6,6 @@ import com.codewithmosh.store.dtos.CartItemDto;
 import com.codewithmosh.store.dtos.UpdateCartItemRequest;
 import com.codewithmosh.store.exceptions.CartNotFoundException;
 import com.codewithmosh.store.exceptions.ProductNotFoundException;
-import com.codewithmosh.store.mappers.CartMapper;
 import com.codewithmosh.store.repositories.CartRepository;
 import com.codewithmosh.store.services.CartService;
 import jakarta.validation.Valid;
@@ -26,7 +25,6 @@ public class CartController {
 
     private final CartService cartService;
     private final CartRepository cartRepository;
-    private final CartMapper cartMapper;
 
     @PostMapping
     public ResponseEntity<CartDto> createCart(UriComponentsBuilder uriComponentsBuilder) {
@@ -59,32 +57,12 @@ public class CartController {
     }
 
     @PutMapping("/{cartId}/items/{productId}")
-    public ResponseEntity<?> updateItemQuantity(
+    public CartItemDto updateCartItem(
             @PathVariable UUID cartId,
             @PathVariable Long productId,
             @Valid @RequestBody UpdateCartItemRequest request) {
 
-        var cart = cartRepository.getCartWithItems(cartId).orElse(null);
-
-        if (cart == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Cart not found."));
-        }
-
-        // Find the cart item for the given product id
-        var cartItem = cart.getItem(productId);
-
-        // If it doesn't exist, return a not found error
-        if (cartItem == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Product was not found in the cart."));
-        }
-
-        // Update the quantity for this cart item
-        cartItem.setQuantity(request.getQuantity());
-        cartRepository.save(cart);
-
-        var cartItemDto = cartMapper.toCartItemDto(cartItem);
-
-        return ResponseEntity.ok(cartItemDto);
+        return cartService.updateCartItem(cartId, productId, request.getQuantity());
     }
 
     @DeleteMapping("/{cartId}/items/{productId}")
