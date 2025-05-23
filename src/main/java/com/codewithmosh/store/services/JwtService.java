@@ -2,12 +2,16 @@ package com.codewithmosh.store.services;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
 
 @Service
 public class JwtService {
+
+    @Value("${spring.jwt.secret}")
+    private String secret;
 
     // Method for generating JSON Web Tokens
     public String generateToken(String email) {
@@ -27,7 +31,7 @@ public class JwtService {
                 .expiration(new Date(System.currentTimeMillis() + 1000 * tokenExpiration))
 
                 // Set the secret and signing algorithm that will be used to generate the signature for our tokens
-                .signWith(Keys.hmacShaKeyFor("secret".getBytes()))
+                .signWith(Keys.hmacShaKeyFor(secret.getBytes()))
 
                 // Use the information provided above and generate the JWT string
                 .compact();
