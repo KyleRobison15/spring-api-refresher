@@ -1,5 +1,6 @@
 package com.codewithmosh.store.services;
 
+import com.codewithmosh.store.entities.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -16,15 +17,20 @@ public class JwtService {
     private String secret;
 
     // Method for generating JSON Web Tokens
-    public String generateToken(String email) {
+    public String generateToken(User user) {
 
         // 1 Day expiration period (tokens will be valid for one day)
         final long tokenExpiration = 86400;
 
         return Jwts.builder()
 
-                 // Set the "sub" property of the JWT's payload to the user's email
-                .subject(email)
+                 // Set the "sub" property of the JWT's payload to the user's id
+                .subject(user.getId().toString())
+
+                // Add the user's name and email as claims in the JWT
+                // This will allow us to get this info from the token instead of querying the DB to get the user details
+                .claim("name", user.getName())
+                .claim("email", user.getEmail())
 
                 // Set the "iat" property of the JWT's payload to the current date
                 .issuedAt(new Date())
@@ -48,8 +54,8 @@ public class JwtService {
     }
 
     // We use this method in our JWT Authentication Filter
-    public String getEmailFromToken(String token) {
-        return getClaims(token).getSubject();
+    public Long getUserIdFromToken(String token) {
+        return Long.valueOf(getClaims(token).getSubject());
     }
 
     private Claims getClaims(String token) {

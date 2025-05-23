@@ -44,7 +44,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // At this point, we have a valid token
         // Now we need to tell spring that the user is authenticated and should be allowed access to protected resources/endpoints
         var authentication = new UsernamePasswordAuthenticationToken(
-                jwtService.getEmailFromToken(token),
+                jwtService.getUserIdFromToken(token),
                 null,
                 null
         );

@@ -38,8 +38,11 @@ public class AuthController {
                 )
         );
 
+        // Get the user from our database so we can generate the JWT for them
+        var user = userRepository.findByEmail(request.getEmail()).orElseThrow();
+
         // Once the user is authenticated, we need to generate the JWT and return it to the client
-        var token = jwtService.generateToken(request.getEmail());
+        var token = jwtService.generateToken(user);
 
         return ResponseEntity.ok(new JwtResponse(token));
     }
@@ -57,10 +60,10 @@ public class AuthController {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         // We cast the result of getPrincipal() to a string because
             // we stored the EMAIL of our users as the principle in the authentication object (in our JWT Auth Filter)
-        var email = (String) authentication.getPrincipal();
+        var userId = (Long) authentication.getPrincipal();
 
         // 2. Find the user in our database
-        var user = userRepository.findByEmail(email).orElse(null);
+        var user = userRepository.findById(userId).orElse(null);
         if(user == null){
             return ResponseEntity.notFound().build();
         }
