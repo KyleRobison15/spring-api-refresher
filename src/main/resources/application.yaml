@@ -10,3 +10,11 @@ spring:
 
   jwt:
     secret: ${JWT_SECRET}
+
+    # The expiration period for an Access Token should be short-lived
+    # 300s = 5m (Access tokens will be valid for 5 mins for this application)
+    accessTokenExpiration: 300
+
+    # The expiration period for a Refresh Token should be long-lived
+    # 604800s = 7d (Refresh tokens will be valid for 7 days for this application)
+    refreshTokenExpiration: 604800 # 7 Days

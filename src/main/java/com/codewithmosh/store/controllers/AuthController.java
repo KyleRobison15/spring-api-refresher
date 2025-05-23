@@ -1,11 +1,14 @@
 package com.codewithmosh.store.controllers;
 
+import com.codewithmosh.store.config.JwtConfig;
 import com.codewithmosh.store.dtos.JwtResponse;
 import com.codewithmosh.store.dtos.LoginRequest;
 import com.codewithmosh.store.dtos.UserDto;
 import com.codewithmosh.store.mappers.UserMapper;
 import com.codewithmosh.store.repositories.UserRepository;
 import com.codewithmosh.store.services.JwtService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -23,11 +26,12 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final JwtConfig jwtConfig;
     private final UserRepository userRepository;
     private final UserMapper userMapper;
 
     @PostMapping("/login")
-    public ResponseEntity<JwtResponse> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<JwtResponse> login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
 
         // Authenticate the user using our Authentication Manager
             // which uses our UserDetailsService implementation to find a user and verify their password
@@ -41,10 +45,19 @@ public class AuthController {
         // Get the user from our database so we can generate the JWT for them
         var user = userRepository.findByEmail(request.getEmail()).orElseThrow();
 
-        // Once the user is authenticated, we need to generate the JWT and return it to the client
-        var token = jwtService.generateToken(user);
+        // Once the user is authenticated, generate an Access Token and Refresh Token
+        var accessToken = jwtService.generateAccessToken(user);
+        var refreshToken = jwtService.generateRefreshToken(user);
 
-        return ResponseEntity.ok(new JwtResponse(token));
+        var cookie = new Cookie("refreshToken", refreshToken);
+        cookie.setHttpOnly(true); // Ensures this cookie CANNOT be accessed by JavaScript
+        cookie.setPath("/auth/refresh"); // Ensures the only time this cookie is set is when a request is made to the /auth/refresh endpoint
+        cookie.setMaxAge(jwtConfig.getRefreshTokenExpiration()); //7d - this cookie should expire the same time the refresh token does
+        cookie.setSecure(true); // Ensures this cookie can only be sent over HTTPS (and not unsecured HTTP)
+        response.addCookie(cookie); // Add the cookie to the response
+
+        // Return the access token in the response body
+        return ResponseEntity.ok(new JwtResponse(accessToken));
     }
 
     @PostMapping("/validate")
