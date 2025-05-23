@@ -35,6 +35,7 @@ public class JwtService {
                 // This will allow us to get this info from the token instead of querying the DB to get the user details
                 .claim("name", user.getName())
                 .claim("email", user.getEmail())
+                .claim("role", user.getRole())
 
                 // Set the "iat" property of the JWT's payload to the current date
                 .issuedAt(new Date())
