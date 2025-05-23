@@ -1,5 +1,6 @@
 package com.codewithmosh.store.config;
 
+import com.codewithmosh.store.entities.Role;
 import com.codewithmosh.store.filters.JwtAuthenticationFilter;
 import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -62,6 +63,7 @@ public class SecurityConfig {
             // Authorize different HTTP requests
             .authorizeHttpRequests(c -> c
                     .requestMatchers("/carts/**").permitAll()
+                    .requestMatchers("/admin/**").hasRole(Role.ADMIN.name()) // Restrict access to the Admin endpoints to users with the "ADMIN" role
                     .requestMatchers(HttpMethod.POST,"/users").permitAll()
                     .requestMatchers(HttpMethod.POST,"/auth/login").permitAll()
                     .requestMatchers(HttpMethod.POST,"/auth/refresh").permitAll()
@@ -71,9 +73,13 @@ public class SecurityConfig {
             // Add JWT authentication to our security filter chain
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
 
-            // Tell spring to throw an Unauthorized status when client fails to access a protected endpoint
-            .exceptionHandling(c ->
-                    c.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)));
+            // Tell spring to handle authentication and access exceptions
+            .exceptionHandling(c -> {
+                c.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED));
+                c.accessDeniedHandler((request, response, accessDeniedException) -> {
+                    response.setStatus(HttpStatus.FORBIDDEN.value());
+                });
+            });
 
         // Returns a Security Filter Chain object that spring will use to secure HTTP requests sent to this server
         return http.build();
