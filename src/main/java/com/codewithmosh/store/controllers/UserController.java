@@ -13,6 +13,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -27,6 +28,7 @@ public class UserController {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
 
     @GetMapping
     public Iterable<UserDto> getAllUsers(
@@ -65,6 +67,7 @@ public class UserController {
         }
 
         User user = userMapper.toEntity(request);
+        user.setPassword(passwordEncoder.encode(user.getPassword())); // Hash the user's password before we store it in the database!
         userRepository.save(user);
 
         UserDto userDto = userMapper.toDto(user);
