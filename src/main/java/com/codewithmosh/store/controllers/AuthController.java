@@ -49,7 +49,7 @@ public class AuthController {
         var accessToken = jwtService.generateAccessToken(user);
         var refreshToken = jwtService.generateRefreshToken(user);
 
-        var cookie = new Cookie("refreshToken", refreshToken);
+        var cookie = new Cookie("refreshToken", refreshToken.toString());
         cookie.setHttpOnly(true); // Ensures this cookie CANNOT be accessed by JavaScript
         cookie.setPath("/auth/refresh"); // Ensures the only time this cookie is set is when a request is made to the /auth/refresh endpoint
         cookie.setMaxAge(jwtConfig.getRefreshTokenExpiration()); //7d - this cookie should expire the same time the refresh token does
@@ -57,21 +57,21 @@ public class AuthController {
         response.addCookie(cookie); // Add the cookie to the response
 
         // Return the access token in the response body
-        return ResponseEntity.ok(new JwtResponse(accessToken));
+        return ResponseEntity.ok(new JwtResponse(accessToken.toString()));
     }
 
     @PostMapping("/refresh")
     public ResponseEntity<JwtResponse> refresh(@CookieValue(value = "refreshToken") String refreshToken) {
 
-        if(!jwtService.validateToken(refreshToken)){
+        var jwt = jwtService.parseToken(refreshToken);
+        if(refreshToken == null || jwt.isExpired()){
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        var userId = jwtService.getUserIdFromToken(refreshToken);
-        var user = userRepository.findById(userId).orElseThrow();
+        var user = userRepository.findById(jwt.getUserId()).orElseThrow();
         var accessToken = jwtService.generateAccessToken(user);
 
-        return ResponseEntity.ok(new JwtResponse(accessToken));
+        return ResponseEntity.ok(new JwtResponse(accessToken.toString()));
     }
 
     @GetMapping("/me")

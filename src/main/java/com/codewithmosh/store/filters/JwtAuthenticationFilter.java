@@ -37,8 +37,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         var token = authHeader.replace("Bearer ", "");
+        var jwt = jwtService.parseToken(token);
 
-        if(!jwtService.validateToken(token)) {
+        if(jwt == null || jwt.isExpired()) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -46,9 +47,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // At this point, we have a valid token
         // Now we need to tell spring that the user is authenticated and should be allowed access to protected resources/endpoints
         var authentication = new UsernamePasswordAuthenticationToken(
-                jwtService.getUserIdFromToken(token),
+                jwt.getUserId(),
                 null,
-                List.of(new SimpleGrantedAuthority("ROLE_" + jwtService.getRoleFromToken(token).name()))
+                List.of(new SimpleGrantedAuthority("ROLE_" + jwt.getRole()))
         );
 
         authentication.setDetails(
