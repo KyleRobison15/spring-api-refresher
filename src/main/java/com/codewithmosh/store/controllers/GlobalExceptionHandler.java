@@ -1,6 +1,7 @@
 package com.codewithmosh.store.controllers;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -18,4 +19,10 @@ public class GlobalExceptionHandler {
         });
         return ResponseEntity.badRequest().body(errors);
     }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, String>> handleMessageNotReadable() {
+        return ResponseEntity.badRequest().body(Map.of("error", "The request body is invalid"));
+    }
+
 }
