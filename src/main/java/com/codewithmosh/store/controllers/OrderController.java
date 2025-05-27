@@ -1,12 +1,12 @@
 package com.codewithmosh.store.controllers;
 
 import com.codewithmosh.store.dtos.OrderDto;
-import com.codewithmosh.store.exceptions.ForbiddenOrderException;
 import com.codewithmosh.store.exceptions.OrderNotFoundException;
 import com.codewithmosh.store.services.OrderService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -34,9 +34,9 @@ public class OrderController {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
     }
 
-    @ExceptionHandler(ForbiddenOrderException.class)
-    public ResponseEntity<?> handleForbiddenOrderException() {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<?> handleAccessDeniedException(AccessDeniedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
     }
 
 }
