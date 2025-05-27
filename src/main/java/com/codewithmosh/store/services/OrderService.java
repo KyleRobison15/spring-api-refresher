@@ -18,7 +18,7 @@ public class OrderService {
 
     public List<OrderDto> getAllOrders() {
         var user = authService.getCurrentUser();
-        var orders = orderRepository.findAllByCustomer(user);
+        var orders = orderRepository.getAllByCustomer(user);
         return orders.stream()
                 .map(orderMapper::toDto)
                 .toList();
