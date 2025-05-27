@@ -8,11 +8,9 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
-@AllArgsConstructor
-@NoArgsConstructor
+
 @Getter
 @Setter
-@Builder
 @Entity
 @Table(name = "orders")
 public class Order {
@@ -28,7 +26,7 @@ public class Order {
 
     @Column(name = "status")
     @Enumerated(EnumType.STRING)
-    private OrderStatus orderStatus;
+    private OrderStatus status;
 
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -42,7 +40,7 @@ public class Order {
     public static Order fromCart(Cart cart, User customer) {
         var order = new Order();
         order.setCustomer(customer);
-        order.setOrderStatus(OrderStatus.PENDING);
+        order.setStatus(OrderStatus.PENDING);
         order.setTotalPrice(cart.getTotalPrice());
 
         cart.getItems().forEach(item -> {
