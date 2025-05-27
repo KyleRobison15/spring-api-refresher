@@ -21,7 +21,7 @@ public class OrderService {
 
     public List<OrderDto> getAllOrders() {
         var user = authService.getCurrentUser();
-        var orders = orderRepository.getAllByCustomer(user);
+        var orders = orderRepository.getOrdersByCustomer(user);
         return orders.stream()
                 .map(orderMapper::toDto)
                 .toList();
@@ -29,11 +29,7 @@ public class OrderService {
 
     public OrderDto getOrderById(Long id) {
         var user = authService.getCurrentUser();
-        var order = orderRepository.findById(id).orElse(null);
-
-        if (order == null) {
-            throw new OrderNotFoundException();
-        }
+        var order = orderRepository.getOrderWithItems(id).orElseThrow(OrderNotFoundException::new);
 
         if(!Objects.equals(order.getCustomer().getId(), user.getId())) {
             throw new ForbiddenOrderException();

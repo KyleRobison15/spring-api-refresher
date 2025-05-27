@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
     // We define a custom query here to avoid the N+1 problem when we get a list of orders for a given customer
@@ -18,5 +19,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         // Now one query will be sent to the DB to fetch all the orders AND the items and products for those orders
     @EntityGraph(attributePaths = "items.product")
     @Query("SELECT o FROM Order o WHERE o.customer = :customer")
-    List<Order> getAllByCustomer(@Param("customer") User customer);
+    List<Order> getOrdersByCustomer(@Param("customer") User customer);
+
+    @EntityGraph(attributePaths = "items.product")
+    @Query("SELECT o FROM Order o WHERE o.id = :orderId")
+    Optional<Order> getOrderWithItems(@Param("orderId") Long orderId);
+
 }
