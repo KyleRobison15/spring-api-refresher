@@ -3,8 +3,6 @@ package com.codewithmosh.store.controllers;
 import com.codewithmosh.store.dtos.CheckoutRequest;
 import com.codewithmosh.store.dtos.CheckoutResponse;
 import com.codewithmosh.store.entities.Order;
-import com.codewithmosh.store.entities.OrderItem;
-import com.codewithmosh.store.entities.OrderStatus;
 import com.codewithmosh.store.repositories.CartRepository;
 import com.codewithmosh.store.repositories.OrderRepository;
 import com.codewithmosh.store.services.AuthService;
@@ -42,20 +40,7 @@ public class CheckoutController {
             return ResponseEntity.badRequest().body(Map.of("error", "Cart is empty."));
         }
 
-        var order = new Order();
-        order.setTotalPrice(cart.getTotalPrice());
-        order.setOrderStatus(OrderStatus.PENDING);
-        order.setCustomer(authService.getCurrentUser());
-
-        cart.getItems().forEach(item -> {
-            var orderItem = new OrderItem();
-            orderItem.setOrder(order);
-            orderItem.setQuantity(item.getQuantity());
-            orderItem.setProduct(item.getProduct());
-            orderItem.setUnitPrice(item.getProduct().getPrice());
-            orderItem.setTotalPrice(item.getTotalPrice());
-            order.getItems().add(orderItem);
-        });
+        var order = Order.fromCart(cart, authService.getCurrentUser());
 
         orderRepository.save(order);
         cartService.clearCart(cart.getId());
