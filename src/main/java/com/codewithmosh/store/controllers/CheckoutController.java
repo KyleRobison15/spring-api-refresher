@@ -1,10 +1,10 @@
 package com.codewithmosh.store.controllers;
 
 import com.codewithmosh.store.dtos.CheckoutRequest;
-import com.codewithmosh.store.dtos.CheckoutResponse;
 import com.codewithmosh.store.exceptions.CartEmptyException;
 import com.codewithmosh.store.exceptions.CartNotFoundException;
 import com.codewithmosh.store.services.CheckoutService;
+import com.stripe.exception.StripeException;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,8 +21,16 @@ public class CheckoutController {
     private final CheckoutService checkoutService;
 
     @PostMapping
-    public CheckoutResponse checkout(@Valid @RequestBody CheckoutRequest request) {
-        return checkoutService.checkout(request);
+    public ResponseEntity<?> checkout(@Valid @RequestBody CheckoutRequest request) {
+
+        try{
+            return ResponseEntity.ok().body(checkoutService.checkout(request));
+        } catch(StripeException e){
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error creating a checkout session."));
+        }
+
     }
 
     @ExceptionHandler({CartNotFoundException.class, CartEmptyException.class})
