@@ -25,7 +25,10 @@ public class StripePaymentGateway implements PaymentGateway {
             var builder = SessionCreateParams.builder()
                     .setMode(SessionCreateParams.Mode.PAYMENT)
                     .setSuccessUrl(websiteUrl + "/checkout-success?orderId=" + order.getId())
-                    .setCancelUrl(websiteUrl + "/checkout-cancel");
+                    .setCancelUrl(websiteUrl + "/checkout-cancel")
+                    // Pass the order id to Stripe as a Metadata object
+                    // This will allow us to update the order status later when Stripe sends us events related to this payment
+                    .putMetadata("order_id", order.getId().toString());
 
             // Create and add each line item to our Stripe Session Params
             order.getItems().forEach(item -> {

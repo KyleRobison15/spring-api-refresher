@@ -36,3 +36,10 @@ In order to verify the result, we use a webhook
    2. Trigger an event using "stripe trigger <event type>" (e.g. stripe trigger payment_intent.succeeded)
    3. Check the dashboard to view the event details [Stripe Dashboard](https://dashboard.stripe.com/test/dashboard)
    4. Review Code With Mosh course video for more details on understanding events, the lifecycle of a payment (payment_intent) and how transactions work in the Stripe ecosystem
+   5. To add metadata (like an order_id): stripe trigger payment_intent.succeeded --add "payment_intent:metadata[order_id]=1"
+      1. This line mimicks a checkout request for Order Id of 1
+
+#### Stripe API and SDK Compatibility
+One important note when working with stripe is that you should always make sure the Stripe API version and the Stripe SDK (maven dependency) are compatible.
+If not, it can cause the deserialization of the event data object from stripe to fail -> resulting in a null pointer exception
+Keep this in mind if you run into that issue, and try to keep the SDK and API versions set to latest for each
