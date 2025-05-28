@@ -12,8 +12,8 @@ spring:
     secret: ${JWT_SECRET}
 
     # The expiration period for an Access Token should be short-lived
-    # 300s = 5m (Access tokens will be valid for 5 mins for this application)
-    accessTokenExpiration: 10800 # 3 hours
+    # 900s = 15m (Access tokens will be valid for 15 mins for this application)
+    accessTokenExpiration: 900
 
     # The expiration period for a Refresh Token should be long-lived
     # 604800s = 7d (Refresh tokens will be valid for 7 days for this application)
