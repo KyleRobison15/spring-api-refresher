@@ -18,3 +18,6 @@ spring:
     # The expiration period for a Refresh Token should be long-lived
     # 604800s = 7d (Refresh tokens will be valid for 7 days for this application)
     refreshTokenExpiration: 604800 # 7 Days
+
+stripe:
+  secretKey: ${STRIPE_SECRET_KEY}
