@@ -2,14 +2,20 @@ package com.codewithmosh.store.services;
 
 import com.codewithmosh.store.entities.Order;
 import com.codewithmosh.store.entities.OrderItem;
+import com.codewithmosh.store.entities.PaymentStauts;
 import com.codewithmosh.store.exceptions.PaymentException;
+import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
+import com.stripe.model.Event;
+import com.stripe.model.PaymentIntent;
 import com.stripe.model.checkout.Session;
+import com.stripe.net.Webhook;
 import com.stripe.param.checkout.SessionCreateParams;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.Optional;
 
 @Service
 public class StripePaymentGateway implements PaymentGateway {
@@ -17,6 +23,9 @@ public class StripePaymentGateway implements PaymentGateway {
     // Inject the URL for the client dynamically (for environment URL flexibility)
     @Value("${websiteUrl}")
     private String websiteUrl;
+
+    @Value("${stripe.webhookSecretKey}")
+    private String webhookSecretKey;
 
     @Override
     public CheckoutSession createCheckoutSession(Order order) {
@@ -44,6 +53,49 @@ public class StripePaymentGateway implements PaymentGateway {
             System.out.println(e.getMessage());
             throw new PaymentException();
         }
+    }
+
+    @Override
+    public Optional<PaymentResult> parseWebhookRequest(WebhookRequest request) {
+        try {
+            var payload = request.getPayload();
+            var signature = request.getHeaders().get("stripe-signature");
+
+            // Securely extract the details of the event from Stripe so we know what happened
+            var event = Webhook.constructEvent(payload, signature, webhookSecretKey);
+
+            // Check the type of the event
+            return switch (event.getType()) {
+                // If payment succeeded, return a PaymentResult with status of PAID
+                case "payment_intent.succeeded" ->
+                        Optional.of(new PaymentResult(extractOrderId(event), PaymentStauts.PAID));
+
+                // If payment failed, return a PaymentResult with status of FAILED
+                case "payment_intent.payment_failed" ->
+                        Optional.of(new PaymentResult(extractOrderId(event), PaymentStauts.FAILED));
+
+                default -> Optional.empty();
+            };
+
+        } catch (SignatureVerificationException e) {
+            throw new PaymentException("Invalid Signature.");
+        }
+
+    }
+
+    private Long extractOrderId(Event event) {
+        // Get the StripeObject from the event
+            // The StripeObject class is the most general Stripe object class
+        // This can be null if the Stripe SDK and API versions are incompatible -> throw an exception in that case
+        var stripeObject = event.getDataObjectDeserializer().getObject().orElseThrow(
+                () -> new PaymentException("Could not deserialize Stripe event. Check the SDK and API versions.")
+        );
+
+        // Depending on the event type, we need to cast the object from the event to a more specific type
+            // charge -> (Charge) stripeObject
+            // payment_intent.succeeded -> (PaymentIntent) stripeObject
+        var paymentIntent = (PaymentIntent) stripeObject;
+        return Long.valueOf(paymentIntent.getMetadata().get("order_id"));
     }
 
     private SessionCreateParams.LineItem createLineItem(OrderItem item) {
