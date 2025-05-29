@@ -3,15 +3,13 @@ package com.codewithmosh.store.users;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Map;
-import java.util.Set;
 
 @AllArgsConstructor
 @RestController
@@ -19,35 +17,16 @@ import java.util.Set;
 @Tag(name = "Users")
 public class UserController {
 
-    private final UserRepository userRepository;
-    private final UserMapper userMapper;
-    private final PasswordEncoder passwordEncoder;
+    private final UserService userService;
 
     @GetMapping
-    public Iterable<UserDto> getAllUsers(
-            @RequestParam(required = false, defaultValue = "", name = "sort") String sort
-    ) {
-
-        if(!Set.of("name", "email").contains(sort)) {
-            sort = "name";
-        }
-
-        return userRepository.findAll(Sort.by(sort))
-                .stream()
-                .map(userMapper::toDto)
-                .toList();
+    public Iterable<UserDto> getAllUsers(@RequestParam(required = false, defaultValue = "", name = "sort") String sort) {
+        return userService.getAllUsers(sort);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UserDto> getUserById(@PathVariable Long id) {
-        User user = userRepository.findById(id).orElse(null);
-
-        if(user == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        return ResponseEntity.ok(userMapper.toDto(user));
-
+    public UserDto getUserById(@PathVariable Long id) {
+        return userService.getUser(id);
     }
 
     @PostMapping
@@ -55,61 +34,40 @@ public class UserController {
             @Valid @RequestBody RegisterUserRequest request,
             UriComponentsBuilder uriBuilder) {
 
-        if (userRepository.existsByEmail(request.getEmail())){
-            return ResponseEntity.badRequest().body(Map.of("email", "Email is already registered."));
-        }
-
-        User user = userMapper.toEntity(request);
-        user.setPassword(passwordEncoder.encode(user.getPassword())); // Hash the user's password before we store it in the database!
-        user.setRole(Role.USER);
-        userRepository.save(user);
-
-        UserDto userDto = userMapper.toDto(user);
+        UserDto userDto = userService.registerUser(request);
         var uri = uriBuilder.path("/users/{id}").buildAndExpand(userDto.getId()).toUri();
 
         return ResponseEntity.created(uri).body(userDto);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<UserDto> updateUser(@PathVariable(name = "id") Long id,
-                                             @RequestBody UpdateUserRequest request) {
-        User user = userRepository.findById(id).orElse(null);
-        if(user == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        userMapper.update(request, user);
-        userRepository.save(user);
-
-        return ResponseEntity.ok(userMapper.toDto(user));
+    public UserDto updateUser(@PathVariable(name = "id") Long id, @RequestBody UpdateUserRequest request) {
+        return userService.updateUser(id, request);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
-        User user = userRepository.findById(id).orElse(null);
-        if(user == null) {
-            return ResponseEntity.notFound().build();
-        }
-        userRepository.delete(user);
-        return ResponseEntity.noContent().build();
+    public void deleteUser(@PathVariable Long id) {
+        userService.deleteUser(id);
     }
 
     @PostMapping("/{id}/change-password")
-    public ResponseEntity<Void> changePassword(@PathVariable Long id,
-                                               @RequestBody ChangePasswordRequest request) {
-        User user = userRepository.findById(id).orElse(null);
-        if(user == null) {
-            return ResponseEntity.notFound().build();
-        }
+    public void changePassword(@PathVariable Long id, @RequestBody ChangePasswordRequest request) {
+        userService.changePassword(id, request);
+    }
 
-        if(!user.getPassword().equals(request.getOldPassword())) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<?> handleUserNotFoundException(UserNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+    }
 
-        user.setPassword(request.getNewPassword());
-        userRepository.save(user);
+    @ExceptionHandler(DuplicateUserException.class)
+    public ResponseEntity<?> handleDuplicateUserException(DuplicateUserException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
+    }
 
-        return ResponseEntity.noContent().build();
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Void> handleAccessDenied() {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
 }
