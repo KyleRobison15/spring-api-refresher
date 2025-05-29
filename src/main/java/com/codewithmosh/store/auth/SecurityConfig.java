@@ -67,6 +67,7 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.POST,"/auth/login").permitAll()
                     .requestMatchers(HttpMethod.POST,"/auth/refresh").permitAll()
                     .requestMatchers(HttpMethod.POST,"/checkout/webhook").permitAll() // Stripe should not have to authenticate to tell us what happened during payment
+                    .requestMatchers(HttpMethod.GET,"/actuator/**").permitAll()
                     .anyRequest().authenticated()
             )
 
