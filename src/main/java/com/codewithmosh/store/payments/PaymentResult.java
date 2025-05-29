@@ -1,6 +1,5 @@
 package com.codewithmosh.store.payments;
 
-import com.codewithmosh.store.entities.PaymentStauts;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
