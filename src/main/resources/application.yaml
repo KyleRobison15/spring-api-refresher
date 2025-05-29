@@ -12,9 +12,16 @@ spring:
     secret: ${JWT_SECRET}
 
     # The expiration period for an Access Token should be short-lived
-    # 300s = 5m (Access tokens will be valid for 5 mins for this application)
-    accessTokenExpiration: 10800 # 3 hours
+    # 900s = 15m (Access tokens will be valid for 15 mins for this application)
+    accessTokenExpiration: 900
 
     # The expiration period for a Refresh Token should be long-lived
     # 604800s = 7d (Refresh tokens will be valid for 7 days for this application)
     refreshTokenExpiration: 604800 # 7 Days
+
+stripe:
+  secretKey: ${STRIPE_SECRET_KEY}
+  webhookSecretKey: ${STRIPE_WEBHOOK_SECRET_KEY}
+
+# This is the URL for the front end application
+websiteUrl: http://localhost:1234
