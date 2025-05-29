@@ -14,7 +14,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
-    private PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
     public Iterable<UserDto> getAllUsers(String sort) {
         if(!Set.of("name", "email").contains(sort)) {
