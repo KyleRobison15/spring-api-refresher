@@ -1,12 +1,6 @@
 spring:
   application:
     name: store
-  datasource:
-    url: jdbc:mysql://localhost:3306/store_api?createDatabaseIfNotExist=true
-    username: root
-    password: Murphy1015!
-  jpa:
-    show-sql: true
 
   jwt:
     secret: ${JWT_SECRET}
@@ -19,9 +13,9 @@ spring:
     # 604800s = 7d (Refresh tokens will be valid for 7 days for this application)
     refreshTokenExpiration: 604800 # 7 Days
 
+  profiles:
+    active: dev
+
 stripe:
   secretKey: ${STRIPE_SECRET_KEY}
   webhookSecretKey: ${STRIPE_WEBHOOK_SECRET_KEY}
-
-# This is the URL for the front end application
-websiteUrl: http://localhost:1234
