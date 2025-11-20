@@ -1,6 +1,6 @@
 package com.codewithmosh.store.auth;
 
-import com.codewithmosh.store.users.Role;
+import com.codewithmosh.store.common.SecurityRules;
 import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,6 +20,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -28,6 +33,7 @@ public class SecurityConfig {
 
     private final UserDetailsService userDetailsService;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final List<SecurityRules> securityRules;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -48,46 +54,61 @@ public class SecurityConfig {
     }
 
     @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        // Allow requests from React dev server
+        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+
+        // Allow common HTTP methods
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+
+        // Allow headers including Authorization for JWT
+        configuration.setAllowedHeaders(List.of("*"));
+
+        // CRITICAL: Allow credentials (cookies for refresh token)
+        configuration.setAllowCredentials(true);
+
+        // Cache preflight requests for 1 hour
+        configuration.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-            // Stateless sessions (token-based authentication)
-            .sessionManagement(c -> c.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // Stateless sessions (token-based authentication)
+                .sessionManagement(c -> c.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-            // Disable CSRF (Cross-Site Request Forgery)
-            // Attack where browser gets tricked into making a request on behalf of a user without their knowledge
-            // Don't need this in REST APIs
-            .csrf(AbstractHttpConfigurer::disable)
+                // Disable CSRF (Cross-Site Request Forgery)
+                // Attack where browser gets tricked into making a request on behalf of a user without their knowledge
+                // Don't need this in REST APIs
+                .csrf(AbstractHttpConfigurer::disable)
 
-            // Authorize different HTTP requests
-            .authorizeHttpRequests(c -> c
-                    .requestMatchers("/swagger-ui/**").permitAll() // Always permit swagger docs
-                    .requestMatchers("/swagger-ui.html/**").permitAll() // Always permit swagger docs
-                    .requestMatchers("/v3/api-docs/**").permitAll() // Always permit swagger docs
-                    .requestMatchers("/carts/**").permitAll()
-                    .requestMatchers("/admin/**").hasRole(Role.ADMIN.name()) // Restrict access to the Admin endpoints to users with the "ADMIN" role
-                    .requestMatchers(HttpMethod.POST,"/users").permitAll()
-                    .requestMatchers(HttpMethod.GET,"/products/**").permitAll()
-                    .requestMatchers(HttpMethod.POST,"/products/**").hasRole(Role.ADMIN.name()) // Allow admin role users to create products
-                    .requestMatchers(HttpMethod.PUT,"/products/**").hasRole(Role.ADMIN.name()) // Allow admin role users to update products
-                    .requestMatchers(HttpMethod.DELETE,"/products/**").hasRole(Role.ADMIN.name()) // Allow admin role users to delete products
-                    .requestMatchers(HttpMethod.POST,"/auth/login").permitAll()
-                    .requestMatchers(HttpMethod.POST,"/auth/refresh").permitAll()
-                    .requestMatchers(HttpMethod.POST,"/checkout/webhook").permitAll() // Stripe should not have to authenticate to tell us what happened during payment
-                    .requestMatchers(HttpMethod.GET,"/actuator/**").permitAll()
-                    .anyRequest().authenticated()
-            )
+                // Enable CORS with our custom configuration
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-            // Add JWT authentication to our security filter chain
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                // Authorize different HTTP requests
+                .authorizeHttpRequests(c -> {
+                            securityRules.forEach(rule -> rule.configure(c));
+                            c.requestMatchers(HttpMethod.GET, "/actuator/**").permitAll().anyRequest().authenticated();
+                        }
+                )
 
-            // Tell spring to handle authentication and access exceptions
-            .exceptionHandling(c -> {
-                c.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED));
-                c.accessDeniedHandler((request, response, accessDeniedException) -> {
-                    response.setStatus(HttpStatus.FORBIDDEN.value());
+                // Add JWT authentication to our security filter chain
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+
+                // Tell spring to handle authentication and access exceptions
+                .exceptionHandling(c -> {
+                    c.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED));
+                    c.accessDeniedHandler((request, response, accessDeniedException) -> {
+                        response.setStatus(HttpStatus.FORBIDDEN.value());
+                    });
                 });
-            });
 
         // Returns a Security Filter Chain object that spring will use to secure HTTP requests sent to this server
         return http.build();
