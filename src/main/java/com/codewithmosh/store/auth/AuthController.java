@@ -2,6 +2,7 @@ package com.codewithmosh.store.auth;
 
 import com.codewithmosh.store.users.UserDto;
 import com.codewithmosh.store.users.UserMapper;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 @AllArgsConstructor
 @RestController
 @RequestMapping("/auth")
+@Tag(name = "Auth")
 public class AuthController {
 
     private final JwtConfig jwtConfig;

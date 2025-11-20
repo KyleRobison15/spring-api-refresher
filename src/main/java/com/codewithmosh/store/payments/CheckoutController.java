@@ -2,6 +2,7 @@ package com.codewithmosh.store.payments;
 
 import com.codewithmosh.store.carts.CartEmptyException;
 import com.codewithmosh.store.carts.CartNotFoundException;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -13,6 +14,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/checkout")
+@Tag(name = "Checkout")
 public class CheckoutController {
 
     private final CheckoutService checkoutService;
