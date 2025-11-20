@@ -35,7 +35,8 @@ public class StripePaymentGateway implements PaymentGateway {
                     .setCancelUrl(websiteUrl + "/checkout-cancel")
                     // Pass the order id to Stripe as a Metadata object
                     // This will allow us to update the order status later when Stripe sends us events related to this payment
-                    .putMetadata("order_id", order.getId().toString());
+                    .setPaymentIntentData(createPaymentIntent(order)
+                    );
 
             // Create and add each line item to our Stripe Session Params
             order.getItems().forEach(item -> {
@@ -51,6 +52,12 @@ public class StripePaymentGateway implements PaymentGateway {
             System.out.println(e.getMessage());
             throw new PaymentException();
         }
+    }
+
+    private static SessionCreateParams.PaymentIntentData createPaymentIntent(Order order) {
+        return SessionCreateParams.PaymentIntentData.builder()
+                .putMetadata("order_id", order.getId().toString())
+                .build();
     }
 
     @Override
@@ -83,15 +90,15 @@ public class StripePaymentGateway implements PaymentGateway {
 
     private Long extractOrderId(Event event) {
         // Get the StripeObject from the event
-            // The StripeObject class is the most general Stripe object class
+        // The StripeObject class is the most general Stripe object class
         // This can be null if the Stripe SDK and API versions are incompatible -> throw an exception in that case
         var stripeObject = event.getDataObjectDeserializer().getObject().orElseThrow(
                 () -> new PaymentException("Could not deserialize Stripe event. Check the SDK and API versions.")
         );
 
         // Depending on the event type, we need to cast the object from the event to a more specific type
-            // charge -> (Charge) stripeObject
-            // payment_intent.succeeded -> (PaymentIntent) stripeObject
+        // charge -> (Charge) stripeObject
+        // payment_intent.succeeded -> (PaymentIntent) stripeObject
         var paymentIntent = (PaymentIntent) stripeObject;
         return Long.valueOf(paymentIntent.getMetadata().get("order_id"));
     }
