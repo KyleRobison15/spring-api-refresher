@@ -61,9 +61,16 @@ public class SecurityConfig {
 
             // Authorize different HTTP requests
             .authorizeHttpRequests(c -> c
+                    .requestMatchers("/swagger-ui/**").permitAll() // Always permit swagger docs
+                    .requestMatchers("/swagger-ui.html/**").permitAll() // Always permit swagger docs
+                    .requestMatchers("/v3/api-docs/**").permitAll() // Always permit swagger docs
                     .requestMatchers("/carts/**").permitAll()
                     .requestMatchers("/admin/**").hasRole(Role.ADMIN.name()) // Restrict access to the Admin endpoints to users with the "ADMIN" role
                     .requestMatchers(HttpMethod.POST,"/users").permitAll()
+                    .requestMatchers(HttpMethod.GET,"/products/**").permitAll()
+                    .requestMatchers(HttpMethod.POST,"/products/**").hasRole(Role.ADMIN.name()) // Allow admin role users to create products
+                    .requestMatchers(HttpMethod.PUT,"/products/**").hasRole(Role.ADMIN.name()) // Allow admin role users to update products
+                    .requestMatchers(HttpMethod.DELETE,"/products/**").hasRole(Role.ADMIN.name()) // Allow admin role users to delete products
                     .requestMatchers(HttpMethod.POST,"/auth/login").permitAll()
                     .requestMatchers(HttpMethod.POST,"/auth/refresh").permitAll()
                     .requestMatchers(HttpMethod.POST,"/checkout/webhook").permitAll() // Stripe should not have to authenticate to tell us what happened during payment
