@@ -1,0 +1,39 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.4.5'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.codewithmosh'
+version = '1.0.0'
+
+java {
+    sourceCompatibility = '17'
+    targetCompatibility = '17'
+}
+
+repositories {
+    mavenLocal()  // Use local Maven for krd starters
+    mavenCentral()
+}
+
+dependencies {
+    // Complete REST API stack with JWT auth, MySQL, Flyway, MapStruct, OpenAPI
+    implementation 'com.krd:rest-api-mysql-starter:1.0.0'
+
+    // Annotation processors (needed even though they're in the starter)
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
+
+    // Domain-specific dependencies
+    implementation 'com.stripe:stripe-java:29.0.0'
+
+    // Testing
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
