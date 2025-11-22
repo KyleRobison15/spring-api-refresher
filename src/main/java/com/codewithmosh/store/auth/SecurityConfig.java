@@ -1,22 +1,16 @@
 package com.codewithmosh.store.auth;
 
 import com.codewithmosh.store.common.SecurityRules;
-import lombok.AllArgsConstructor;
+import com.krd.auth.security.JwtAuthenticationFilter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -26,32 +20,26 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
+/**
+ * Security configuration for the application.
+ * Extends the base security configuration from krd-spring-starters with:
+ * - CORS configuration for React frontend
+ * - Domain-specific security rules
+ * - Custom exception handling
+ *
+ * Base configuration (from auth-starter) provides:
+ * - JWT authentication filter
+ * - Password encoder (BCrypt)
+ * - Authentication provider
+ * - Authentication manager
+ */
 @Configuration
 @EnableWebSecurity
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final UserDetailsService userDetailsService;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final List<SecurityRules> securityRules;
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
-    @Bean
-    public AuthenticationProvider authenticationProvider() {
-        var provider = new DaoAuthenticationProvider();
-        provider.setPasswordEncoder(passwordEncoder());
-        provider.setUserDetailsService(userDetailsService);
-        return provider;
-    }
-
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
-    }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
@@ -77,32 +65,35 @@ public class SecurityConfig {
         return source;
     }
 
+    /**
+     * Override the default security filter chain to add domain-specific rules.
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
         http
                 // Stateless sessions (token-based authentication)
                 .sessionManagement(c -> c.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                // Disable CSRF (Cross-Site Request Forgery)
-                // Attack where browser gets tricked into making a request on behalf of a user without their knowledge
-                // Don't need this in REST APIs
+                // Disable CSRF (not needed for REST APIs)
                 .csrf(AbstractHttpConfigurer::disable)
 
                 // Enable CORS with our custom configuration
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-                // Authorize different HTTP requests
+                // Authorize HTTP requests with domain-specific rules
                 .authorizeHttpRequests(c -> {
-                            securityRules.forEach(rule -> rule.configure(c));
-                            c.requestMatchers(HttpMethod.GET, "/actuator/**").permitAll().anyRequest().authenticated();
-                        }
-                )
+                    // Apply domain-specific security rules
+                    securityRules.forEach(rule -> rule.configure(c));
 
-                // Add JWT authentication to our security filter chain
+                    // Allow actuator endpoints and require authentication for all other requests
+                    c.requestMatchers(HttpMethod.GET, "/actuator/**").permitAll()
+                     .anyRequest().authenticated();
+                })
+
+                // Add JWT authentication filter from auth-starter
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
 
-                // Tell spring to handle authentication and access exceptions
+                // Custom exception handling
                 .exceptionHandling(c -> {
                     c.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED));
                     c.accessDeniedHandler((request, response, accessDeniedException) -> {
@@ -110,7 +101,6 @@ public class SecurityConfig {
                     });
                 });
 
-        // Returns a Security Filter Chain object that spring will use to secure HTTP requests sent to this server
         return http.build();
     }
 }
