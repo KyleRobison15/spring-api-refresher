@@ -1,5 +1,6 @@
 package com.codewithmosh.store.users;
 
+import com.krd.auth.model.Role;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
@@ -39,7 +40,7 @@ public class UserService {
 
         User user = userMapper.toEntity(request);
         user.setPassword(passwordEncoder.encode(user.getPassword())); // Hash the user's password before we store it in the database!
-        user.setRole(Role.USER);
+        user.addRole(Role.ROLE_USER);
         userRepository.save(user);
 
         return userMapper.toDto(user);
