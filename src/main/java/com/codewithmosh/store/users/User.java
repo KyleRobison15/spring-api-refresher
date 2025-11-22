@@ -1,62 +1,45 @@
 package com.codewithmosh.store.users;
 
 import com.codewithmosh.store.products.Product;
+import com.krd.auth.model.BaseUser;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
+/**
+ * User entity extending BaseUser from krd-spring-starters.
+ *
+ * Inherited from BaseUser:
+ * - id, firstName, lastName, email, password
+ * - roles (Set<Role>)
+ * - addresses (Set<Address>)
+ * - createdAt, updatedAt
+ * - addRole(), addAddress() methods
+ *
+ * Domain-specific additions:
+ * - favoriteProducts (wishlist)
+ */
 @Setter
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@SuperBuilder  // Changed from @Builder to @SuperBuilder for inheritance
+@EqualsAndHashCode(callSuper = true)  // Include BaseUser fields in equals/hashCode
 @Entity
 @Table(name = "users")
-public class User {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    @EqualsAndHashCode.Include
-    private Long id;
+public class User extends BaseUser {
 
-    @Column(name = "name")
-    private String name;
-
-    @Column(name = "email")
-    private String email;
-
-    @Column(name = "password")
-    private String password;
-
-    @Column(name = "role")
-    @Enumerated(EnumType.STRING)  // Tells Spring to store the Role as a String in the DB
-    private Role role;
-
-    @OneToMany(mappedBy = "user", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
-    @Builder.Default
-    private List<Address> addresses = new ArrayList<>();
-
-    public void addAddress(Address address) {
-        addresses.add(address);
-        address.setUser(this);
-    }
-
-    public void removeAddress(Address address) {
-        addresses.remove(address);
-        address.setUser(null);
-    }
-
+    // Domain-specific field: favorite products (wishlist)
     @ManyToMany
     @JoinTable(
         name = "wishlist",
         joinColumns = @JoinColumn(name = "user_id"),
         inverseJoinColumns = @JoinColumn(name = "product_id")
     )
+    @Builder.Default
     private Set<Product> favoriteProducts = new HashSet<>();
 
     public void addFavoriteProduct(Product product) {
@@ -66,8 +49,9 @@ public class User {
     @Override
     public String toString() {
         return getClass().getSimpleName() + "(" +
-                "id = " + id + ", " +
-                "name = " + name + ", " +
-                "email = " + email + ")";
+                "id = " + getId() + ", " +
+                "firstName = " + getFirstName() + ", " +
+                "lastName = " + getLastName() + ", " +
+                "email = " + getEmail() + ")";
     }
 }
