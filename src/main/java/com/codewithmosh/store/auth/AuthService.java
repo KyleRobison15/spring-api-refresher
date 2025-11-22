@@ -2,61 +2,64 @@ package com.codewithmosh.store.auth;
 
 import com.codewithmosh.store.users.User;
 import com.codewithmosh.store.users.UserRepository;
-import lombok.AllArgsConstructor;
+import com.krd.auth.dto.RegisterRequest;
+import com.krd.auth.model.Role;
+import com.krd.auth.security.JwtService;
+import com.krd.auth.service.BaseUserService;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-@AllArgsConstructor
+/**
+ * Authentication service extending BaseUserService from krd-spring-starters.
+ *
+ * Inherited from BaseUserService:
+ * - register(RegisterRequest, HttpServletResponse)
+ * - login(LoginRequest, HttpServletResponse)
+ * - refreshAccessToken(String refreshToken, HttpServletResponse)
+ * - logout(HttpServletResponse)
+ *
+ * Domain-specific additions:
+ * - getCurrentUser() - get currently authenticated user
+ */
 @Service
-public class AuthService {
+public class AuthService extends BaseUserService<User> {
 
-    private final AuthenticationManager authenticationManager;
-    private final UserRepository userRepository;
-    private final JwtService jwtService;
+    public AuthService(
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService,
+            AuthenticationManager authenticationManager,
+            UserDetailsService userDetailsService
+    ) {
+        super(userRepository, passwordEncoder, jwtService, authenticationManager, userDetailsService);
+    }
 
+    /**
+     * Get the currently authenticated user from the security context.
+     */
     public User getCurrentUser() {
-        // 1. Extract the principal from our Security Context
         var authentication = SecurityContextHolder.getContext().getAuthentication();
-        // We cast the result of getPrincipal() to a string because
-        // we stored the EMAIL of our users as the principle in the authentication object (in our JWT Auth Filter)
         var userId = (Long) authentication.getPrincipal();
-
-        // 2. Find the user in our database
         return userRepository.findById(userId).orElse(null);
     }
 
-    public LoginResponse login(LoginRequest request) {
+    /**
+     * Create a User entity from a RegisterRequest.
+     * This implementation is required by BaseUserService.
+     */
+    @Override
+    protected User createUserFromRequest(RegisterRequest request) {
+        User user = User.builder()
+                .firstName(request.getFirstName())
+                .lastName(request.getLastName())
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .build();
 
-        // Authenticate the user using our Authentication Manager
-        // which uses our UserDetailsService implementation to find a user and verify their password
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
-                )
-        );
-
-        // Get the user from our database so we can generate the JWT for them
-        var user = userRepository.findByEmail(request.getEmail()).orElseThrow();
-
-        // Once the user is authenticated, generate an Access Token and Refresh Token
-        var accessToken = jwtService.generateAccessToken(user);
-        var refreshToken = jwtService.generateRefreshToken(user);
-
-        return new LoginResponse(accessToken, refreshToken);
+        user.addRole(Role.ROLE_USER); // Add default user role
+        return user;
     }
-
-    public Jwt refreshAccessToken(String refreshToken) {
-        var jwt = jwtService.parseToken(refreshToken);
-        if(jwt == null || jwt.isExpired()){
-            throw new BadCredentialsException("Invalid refresh token");
-        }
-
-        var user = userRepository.findById(jwt.getUserId()).orElseThrow();
-        return jwtService.generateAccessToken(user);
-    }
-
 }
