@@ -29,6 +29,9 @@ dependencies {
     // Domain-specific dependencies
     implementation 'com.stripe:stripe-java:29.0.0'
 
+    // Load environment variables from .env file
+    implementation 'me.paulschwarz:spring-dotenv:4.0.0'
+
     // Testing
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
