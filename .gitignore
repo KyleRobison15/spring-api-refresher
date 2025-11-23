@@ -5,6 +5,14 @@ target/
 !**/src/test/**/target/
 .env
 
+### Gradle ###
+.gradle/
+**/build/
+!src/**/build/
+
+### macOS ###
+.DS_Store
+
 ### STS ###
 .apt_generated
 .classpath
