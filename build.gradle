@@ -32,6 +32,7 @@ configurations {
 }
 
 repositories {
+	mavenLocal()  // For locally published starters
 	mavenCentral()
 }
 
@@ -43,6 +44,9 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+
+	// JWT Auth Starter
+	implementation 'com.krd:jwt-auth-starter:1.0.0'
 
 	// Thymeleaf Security Integration
 	implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
@@ -62,11 +66,6 @@ dependencies {
 
 	// API Documentation
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6'
-
-	// JWT
-	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
-	implementation 'io.jsonwebtoken:jjwt-impl:0.12.6'
-	implementation 'io.jsonwebtoken:jjwt-jackson:0.12.5'
 
 	// Environment Variables
 	implementation 'me.paulschwarz:spring-dotenv:4.0.0'
