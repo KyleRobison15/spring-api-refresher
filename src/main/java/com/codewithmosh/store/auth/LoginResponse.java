@@ -1,5 +1,6 @@
 package com.codewithmosh.store.auth;
 
+import com.krd.auth.Jwt;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 

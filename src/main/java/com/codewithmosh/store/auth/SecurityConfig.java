@@ -1,6 +1,7 @@
 package com.codewithmosh.store.auth;
 
 import com.codewithmosh.store.common.SecurityRules;
+import com.krd.auth.JwtAuthenticationFilter;
 import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

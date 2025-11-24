@@ -2,6 +2,7 @@ package com.codewithmosh.store.auth;
 
 import com.codewithmosh.store.users.UserDto;
 import com.codewithmosh.store.users.UserMapper;
+import com.krd.auth.JwtConfig;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
