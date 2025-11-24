@@ -17,8 +17,8 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
 
     public Iterable<UserDto> getAllUsers(String sort) {
-        if(!Set.of("name", "email").contains(sort)) {
-            sort = "name";
+        if(!Set.of("firstName", "lastName", "username", "email").contains(sort)) {
+            sort = "email";
         }
 
         return userRepository.findAll(Sort.by(sort))
@@ -37,9 +37,15 @@ public class UserService {
             throw new DuplicateUserException();
         }
 
+        // Only check for duplicate username if one is provided
+        if (request.getUsername() != null && !request.getUsername().isBlank()
+            && userRepository.existsByUsername(request.getUsername())){
+            throw new DuplicateUserException();
+        }
+
         User user = userMapper.toEntity(request);
         user.setPassword(passwordEncoder.encode(user.getPassword())); // Hash the user's password before we store it in the database!
-        user.setRole(Role.USER);
+        user.setRoles(Set.of("USER")); // Assign default USER role
         userRepository.save(user);
 
         return userMapper.toDto(user);
